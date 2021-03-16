@@ -11,9 +11,11 @@ const { Camera, Filesystem, Storage } = Plugins;
 export class FotoService {
 
   public dataFoto : Photo[] = [];
+  public fotoProfil: Photo[] = [];
   private keyFoto : string = "foto";
+  private keyFotoProfil : string = "fotoProfil";
   private platform : Platform;
-
+  
   constructor(platform: Platform) { 
     this.platform = platform;
   }
@@ -35,6 +37,36 @@ export class FotoService {
       key: this.keyFoto,
       value: JSON.stringify(this.dataFoto)
     })
+
+    this.simpanFoto(Foto);
+  }
+
+  public async gantiFotoProfil() {
+    const Foto = await Camera.getPhoto({
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Camera,
+      quality: 100
+    });
+    console.log(Foto);
+
+    if(this.fotoProfil.length > 0){
+      this.fotoProfil[0] = {
+        filePath: "Load",
+        webviewPath: Foto.webPath
+      };
+    }else{
+      this.fotoProfil.unshift({
+        filePath: "Load",
+        webviewPath: Foto.webPath
+      });
+    }
+    
+    Storage.set({
+      key: this.keyFotoProfil,
+      value: JSON.stringify(this.fotoProfil)
+    });
+
+    this.simpanFoto(Foto);
   }
 
   public async simpanFoto(foto : CameraPhoto){
@@ -98,6 +130,23 @@ export class FotoService {
     }
 
     console.log(this.dataFoto);
+  }
+
+  public async loadFotoProfil() {
+    const listFoto = await Storage.get({ key: this.keyFotoProfil });
+    this.fotoProfil = JSON.parse(listFoto.value) || [];
+
+    if (!this.platform.is('hybrid')) {
+      for (let foto of this.fotoProfil) {
+        const readFile = await Filesystem.readFile({
+          path: foto.filePath,
+          directory: FilesystemDirectory.Data
+        });
+        foto.webviewPath = `data:image/jpeg;base64,${readFile.data}`;
+      }
+    }
+
+    console.log(this.fotoProfil);
   }
 }
 
